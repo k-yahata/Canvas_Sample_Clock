@@ -102,10 +102,10 @@ class Canvas{
     // get the pointer of the first pixel 
     inline uint8_t* get_pointer_to_data() {return data;}
     // get the pointer of the pixel at (x,y). If the position is out of image, the position is shifted to inside of the image.
-    uint8_t* get_pointer_to_data( int x, int y ) const;
+    uint8_t* get_pointer_to_data( int x, int y ) ;
     protected:
     // get the pointer of the pixel at (x,y). No range check
-    inline uint8_t* get_pointer_to_data_unsafe( int x, int y ) const { return const_cast<uint8_t *>(&(data[(y*width+x)*bytes_per_pixel])); }
+    inline uint8_t* get_pointer_to_data_unsafe( int x, int y )  { return (&(data[(y*width+x)*bytes_per_pixel])); }
 
 
     //---------------------
@@ -167,20 +167,20 @@ class Canvas{
     void fill_not_convex_polygon( Polygon2D &polygon, Color &color, const uint8_t alpha );
     inline void alpha_blend( const Color color_org, const Color color_cur, const uint8_t alpha, Color &new_color ) const{
         for( int c = 0; c < Color::n_color; c++ ){
-//            new_color.color[c] = ( ( alpha * ( static_cast<color_alpha_blend_t>(color_org.color[c]) - static_cast<color_alpha_blend_t>(color_cur.color[c]) )) >> 7 ) + color_cur.color[c];
+            new_color.color[c] = ( ( alpha * ( static_cast<color_alpha_blend_t>(color_org.color[c]) - static_cast<color_alpha_blend_t>(color_cur.color[c]) )) >> 7 ) + color_cur.color[c];
 //            //antialias off
-           if( alpha <= 64 ){
-               new_color.color[c] = color_cur.color[c];
-           }else{
-               new_color.color[c] = color_org.color[c];
-           }
+        //    if( alpha <= 64 ){
+        //        new_color.color[c] = color_cur.color[c];
+        //    }else{
+        //        new_color.color[c] = color_org.color[c];
+        //    }
         }
         return; 
     }
 
     // 
     public:
-    bool saveBMP(std::string file_name) const;
+    bool saveBMP(std::string file_name) ;
     private:
     virtual void Color_to_RGB888( Color &color,  uint8_t &r8, uint8_t &g8, uint8_t &b8 ) const = 0;
 
@@ -221,7 +221,7 @@ void Canvas<WIDTH, HEIGHT, BYTES_PER_PIXEL, Color> ::clear( uint8_t val ){
 // Get the pointer to the pixel value at (x,y).
 // If x and/or y are out of range, they are cliped.
 template <unsigned int WIDTH, unsigned int HEIGHT, unsigned int BYTES_PER_PIXEL, class Color> 
-uint8_t* Canvas<WIDTH, HEIGHT, BYTES_PER_PIXEL, Color> ::get_pointer_to_data( int x, int y ) const{
+uint8_t* Canvas<WIDTH, HEIGHT, BYTES_PER_PIXEL, Color> ::get_pointer_to_data( int x, int y ) {
     if( x < 0 ) x = 0;
     if( x >= width ) x = width - 1;
     if( y < 0 ) y = 0;
@@ -357,16 +357,9 @@ void Canvas<WIDTH, HEIGHT, BYTES_PER_PIXEL, Color> ::draw_dot( Point2D p0, Color
 template <unsigned int WIDTH, unsigned int HEIGHT, unsigned int BYTES_PER_PIXEL, class Color> 
 void Canvas<WIDTH, HEIGHT, BYTES_PER_PIXEL, Color> ::draw_line( const Point2D p0, const Point2D p1, const float weight, Color &color, const uint8_t alpha){
     // 長方形polygon作成
-    Point2D n01 = p1 - p0;
-    n01.normalize();
-    Point2D v(-n01.y, n01.x);
-    v = v * (weight*internal_scale/2);
-    Polygon2D rectangle;
-    rectangle.add_Point2D( p1 + v );
-    rectangle.add_Point2D( p0 + v );
-    rectangle.add_Point2D( p0 - v );
-    rectangle.add_Point2D( p1 - v );
-    fill_convex_polygon(rectangle, color, alpha);
+    Polygon2D line_segment;
+    line_segment.line_segment( p0, p1, weight );
+    fill_convex_polygon(line_segment, color, alpha);
 }
 
 template <unsigned int WIDTH, unsigned int HEIGHT, unsigned int BYTES_PER_PIXEL, class Color> 
@@ -412,14 +405,14 @@ void Canvas<WIDTH, HEIGHT, BYTES_PER_PIXEL, Color> ::draw_segments_HQ( Polygon2D
         Point2D p0, p1, p2, p0i, p0o, p1i, p1o;
         Polygon2D leftside_points;
         Polygon2D rightside_points;
-        float length_factor = weight * internal_scale * 0.5f;
+        float length_internal = weight * internal_scale * 0.5f;
         if( oc == CLOSE ){
             p0 = polygon.get_Point2D(np-1); // previous vertex
             p1 = polygon.get_Point2D(0);    // current vertex
             p2 = polygon.get_Point2D(1);    // next vertex
             for( int n = 1; n <= np+1; n++ ){
                 // 交点算出
-                coordinate_t x01 = p0.x - p1.x;
+                coordinate_t x01 = p0.x - p1.x; // internal scale
                 coordinate_t y01 = p0.y - p1.y;
                 coordinate_t x12 = p1.x - p2.x;
                 coordinate_t y12 = p1.y - p2.y;
@@ -427,10 +420,10 @@ void Canvas<WIDTH, HEIGHT, BYTES_PER_PIXEL, Color> ::draw_segments_HQ( Polygon2D
                 //float r12 = sqrt( x12 * x12 + y12 * y12 );
                 //float length = r01 * r12 / abs( x01 * y12 - y01 * x12 ) * weight * internal_scale * 0.5f;
                 //Point2D p1_temp = (Point2D( x01, y01 ) / r01 - Point2D( x12, y12 ) / r12 ) * length;
-                float length = length_factor / fabs( x01 * y12 - y01 * x12 );
-                float r01 = sqrt( x01 * x01 + y01 * y01 ) * length;
-                float r12 = sqrt( x12 * x12 + y12 * y12 ) * length;
-                Point2D p1_temp = Point2D( x01 * r12, y01 * r12 )  - Point2D( x12 * r01, y12 * r01 );
+                float length_factor = length_internal / fabs( x01 * y12 - y01 * x12 );
+                float r01 = sqrt( x01 * x01 + y01 * y01 ) * length_factor;
+                float r12 = sqrt( x12 * x12 + y12 * y12 ) * length_factor;
+                Point2D p1_temp = Point2D( x01 * r12, y01 * r12, true )  - Point2D( x12 * r01, y12 * r01, true );
                 // 左右判定
                 if( -x01 * p1_temp.y + y01 * p1_temp.x >= 0 ){
                     rightside_points.add_Point2D(p1 + p1_temp);
@@ -473,10 +466,10 @@ void Canvas<WIDTH, HEIGHT, BYTES_PER_PIXEL, Color> ::draw_segments_HQ( Polygon2D
                 coordinate_t y01 = p0.y - p1.y;
                 coordinate_t x12 = p1.x - p2.x;
                 coordinate_t y12 = p1.y - p2.y;
-                float length = length_factor / fabs( x01 * y12 - y01 * x12 );
-                float r01 = sqrt( x01 * x01 + y01 * y01 ) * length;
-                float r12 = sqrt( x12 * x12 + y12 * y12 ) * length;
-                Point2D p1_temp = Point2D( x01 * r12, y01 * r12 )  - Point2D( x12 * r01, y12 * r01 );
+                float length_factor = length_internal / fabs( x01 * y12 - y01 * x12 );
+                float r01 = sqrt( x01 * x01 + y01 * y01 ) * length_factor;
+                float r12 = sqrt( x12 * x12 + y12 * y12 ) * length_factor;
+                Point2D p1_temp = Point2D( x01 * r12, y01 * r12, true )  - Point2D( x12 * r01, y12 * r01, true );
                 // 左右判定
                 if( -x01 * p1_temp.y + y01 * p1_temp.x >= 0 ){
                     rightside_points.add_Point2D(p1 + p1_temp);
@@ -491,7 +484,7 @@ void Canvas<WIDTH, HEIGHT, BYTES_PER_PIXEL, Color> ::draw_segments_HQ( Polygon2D
             }
             n01 = p1 - p0;
             n01.normalize();
-            v = Point2D(-n01.y, n01.x);
+            v = Point2D(-n01.y, n01.x, true);
             v = v * (weight*internal_scale/2);
             if( v.x * n01.y - v.y * n01.x <= 0 ){
                 rightside_points.add_Point2D(p1 + v);
@@ -514,7 +507,7 @@ void draw_circle( const float cx, const float cy, const float radius, const floa
 
 
 template <unsigned int WIDTH, unsigned int HEIGHT, unsigned int BYTES_PER_PIXEL, class Color> 
-bool Canvas<WIDTH, HEIGHT, BYTES_PER_PIXEL, Color> ::saveBMP(std::string file_name) const{
+bool Canvas<WIDTH, HEIGHT, BYTES_PER_PIXEL, Color> ::saveBMP(std::string file_name){
 
 #ifndef ESP32
     std::ofstream fout( file_name, std::ios::binary );

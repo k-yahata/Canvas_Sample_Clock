@@ -62,22 +62,43 @@ Point2D Point2D::operator / (const float f) const {
     return Point2D(this->x * f_inv, this->y * f_inv, true);
 }
 
+Point2D & Point2D::mul_equal_int(const int16_t one_is_128){
+    this->x = (static_cast<int32_t>(this->x) * one_is_128 ) >> 7;
+    this->y = (static_cast<int32_t>(this->y) * one_is_128 ) >> 7;
+    return *this;
+}
+Point2D & Point2D::div_equal_int(const int16_t one_is_128){
+    uint16_t f_inv = 16384 / one_is_128;
+    this->x = (static_cast<int32_t>(this->x) * f_inv) >> 7;
+    this->y = (static_cast<int32_t>(this->y) * f_inv) >> 7;
+    return *this;
+}
+Point2D Point2D::mul_int(const int16_t one_is_128) const{
+    return Point2D((static_cast<int32_t>(this->x) * one_is_128)>>7, (static_cast<int32_t>(this->y) * one_is_128)>>7, true);
+}
+Point2D Point2D::div_int(const int16_t one_is_128) const{
+    int16_t f_inv = 16384 / one_is_128;
+    return Point2D((static_cast<int32_t>(this->x) * f_inv)>>7, (static_cast<int32_t>(this->y) * f_inv)>>7, true);
+}
+
+
+
 float Point2D::abs() const{
     return sqrt(this->x * this->x + this->y * this-> y) / internal_scale;
 }
 float Point2D::normalize(){
-    float r = abs();
+    float r = abs(); // user scale
     if( r != 0.0f ){
         float r_inv = 1.0f/r;
-        this->x *= r_inv;
-        this->y *= r_inv;
+        this->x *= r_inv; // internal scale
+        this->y *= r_inv; // 
     }
     return r;
 }
 
 void Point2D::print(){
 #ifndef ESP32
-    std::cout << "  Point2D:print():" << x/internal_scale << " " << y/internal_scale << std::endl;
+    std::cout << "  Point2D:print():" << x/(float)internal_scale << " " << y/(float)internal_scale << std::endl;
 #endif
 }
 

@@ -33,7 +33,7 @@ void Polygon2D::clear(){
 
 // 点の追加。bounding boxと、is_convexの更新
 void Polygon2D::add_Point2D( const float x, const float y ){
-    this->add_Point2D(Point2D(x,y));
+    this->add_Point2D(Point2D( x, y) );
 }
 
 void Polygon2D::add_Point2D( const Point2D p ){
@@ -98,34 +98,65 @@ void Polygon2D::add_Point2D( const Point2D p ){
     }
 }
 
-// ほぼ円(正24角形)
-void Polygon2D::circle24( Point2D center, float raduis ){
+// define the rectangle
+void Polygon2D::rectangle( Point2D p0, Point2D p1 ){
     clear();
-    add_Point2D(Point2D( 1.000f,  0.000f));
-    add_Point2D(Point2D( 0.966f,  0.259f));
-    add_Point2D(Point2D( 0.866f,  0.500f));
-    add_Point2D(Point2D( 0.707f,  0.707f));
-    add_Point2D(Point2D( 0.500f,  0.866f));
-    add_Point2D(Point2D( 0.259f,  0.966f));
-    add_Point2D(Point2D( 0.000f,  1.000f));
-    add_Point2D(Point2D(-0.259f,  0.966f));
-    add_Point2D(Point2D(-0.500f,  0.866f));
-    add_Point2D(Point2D(-0.707f,  0.707f));
-    add_Point2D(Point2D(-0.866f,  0.500f));
-    add_Point2D(Point2D(-0.966f,  0.259f));
-    add_Point2D(Point2D(-1.000f,  0.000f));
-    add_Point2D(Point2D(-0.966f, -0.259f));
-    add_Point2D(Point2D(-0.866f, -0.500f));
-    add_Point2D(Point2D(-0.707f, -0.707f));
-    add_Point2D(Point2D(-0.500f, -0.866f));
-    add_Point2D(Point2D(-0.259f, -0.966f));
-    add_Point2D(Point2D(-0.000f, -1.000f));
-    add_Point2D(Point2D( 0.259f, -0.966f));
-    add_Point2D(Point2D( 0.500f, -0.866f));
-    add_Point2D(Point2D( 0.707f, -0.707f));
-    add_Point2D(Point2D( 0.866f, -0.500f));
-    add_Point2D(Point2D( 0.966f, -0.259f));
-    *this *= (raduis * internal_scale);
+    Point2D v0,v1,v2,v3;
+    v0.x = p0.x; 
+    v0.y = p0.y; 
+    v1.x = p1.x; 
+    v1.y = p0.y; 
+    v2.x = p1.x; 
+    v2.y = p1.y; 
+    v3.x = p0.x; 
+    v3.y = p1.y; 
+    // set by internal coodinates
+    add_Point2D( v0 );
+    add_Point2D( v1 );
+    add_Point2D( v2 );
+    add_Point2D( v3 );
+}
+
+void Polygon2D::line_segment( Point2D p0, Point2D p1, float weight ){
+    clear();
+    Point2D n01 = p1 - p0;
+    n01.normalize();
+    Point2D v(-n01.y, n01.x, true );
+    v *= (weight/2.0);
+    add_Point2D( p1 + v );
+    add_Point2D( p0 + v );
+    add_Point2D( p0 - v );
+    add_Point2D( p1 - v );
+}
+
+
+// ほぼ円(正24角形)
+void Polygon2D::circle24( Point2D center, float radius ){
+    clear();
+    add_Point2D(Point2D( 1.000f * radius,  0.000f * radius));
+    add_Point2D(Point2D( 0.966f * radius,  0.259f * radius));
+    add_Point2D(Point2D( 0.866f * radius,  0.500f * radius));
+    add_Point2D(Point2D( 0.707f * radius,  0.707f * radius));
+    add_Point2D(Point2D( 0.500f * radius,  0.866f * radius));
+    add_Point2D(Point2D( 0.259f * radius,  0.966f * radius));
+    add_Point2D(Point2D( 0.000f * radius,  1.000f * radius));
+    add_Point2D(Point2D(-0.259f * radius,  0.966f * radius));
+    add_Point2D(Point2D(-0.500f * radius,  0.866f * radius));
+    add_Point2D(Point2D(-0.707f * radius,  0.707f * radius));
+    add_Point2D(Point2D(-0.866f * radius,  0.500f * radius));
+    add_Point2D(Point2D(-0.966f * radius,  0.259f * radius));
+    add_Point2D(Point2D(-1.000f * radius,  0.000f * radius));
+    add_Point2D(Point2D(-0.966f * radius, -0.259f * radius));
+    add_Point2D(Point2D(-0.866f * radius, -0.500f * radius));
+    add_Point2D(Point2D(-0.707f * radius, -0.707f * radius));
+    add_Point2D(Point2D(-0.500f * radius, -0.866f * radius));
+    add_Point2D(Point2D(-0.259f * radius, -0.966f * radius));
+    add_Point2D(Point2D(-0.000f * radius, -1.000f * radius));
+    add_Point2D(Point2D( 0.259f * radius, -0.966f * radius));
+    add_Point2D(Point2D( 0.500f * radius, -0.866f * radius));
+    add_Point2D(Point2D( 0.707f * radius, -0.707f * radius));
+    add_Point2D(Point2D( 0.866f * radius, -0.500f * radius));
+    add_Point2D(Point2D( 0.966f * radius, -0.259f * radius));
     *this += center;
 }
 
@@ -595,14 +626,31 @@ Polygon2D & Polygon2D::operator -= (const Point2D p){
     return *this;
 }
 Polygon2D & Polygon2D::operator *= (const float f){
+
+#ifdef USE_SINGLE_PRECISION_FLOATING_COORDINATES
+    // nothing to do
+#else
+    uint16_t f_int = 128 * f;
+#endif
     int n = this->vertices.size();
-    for( int i = 0; i < n; i++ ){
+    for( int i = 0; i < n; i++ ){        
+#ifdef USE_SINGLE_PRECISION_FLOATING_COORDINATES
         this->vertices[i] *= f;
+#else
+        this->vertices[i].mul_equal_int( f_int );
+#endif
     }
-    this->minX = this->minX * f;
-    this->maxX = this->maxX * f;
-    this->minY = this->minY * f;
-    this->maxY = this->maxY * f;
+#ifdef USE_SINGLE_PRECISION_FLOATING_COORDINATES
+    this->minX *= f;
+    this->maxX *= f;
+    this->minY *= f;
+    this->maxY *= f;
+#else
+    this->minX = (static_cast<int32_t>(this->minX) * f_int) >> 7;
+    this->maxX = (static_cast<int32_t>(this->maxX) * f_int) >> 7;
+    this->minY = (static_cast<int32_t>(this->minY) * f_int) >> 7;
+    this->maxY = (static_cast<int32_t>(this->maxY) * f_int) >> 7;
+#endif
     return *this;
 }
 Polygon2D & Polygon2D::operator /= (const float f){

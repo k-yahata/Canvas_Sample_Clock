@@ -2,16 +2,18 @@
 #define __POLYGON2D_HPP__
 /*==============================================================//
 class Polygon2D 
-   ベクトル描画向け 単精度 2次元ポリゴンのデータクラス 
-
+    2D polygon data class / ベクトル描画向け  2次元ポリゴンのデータクラス 
 //==============================================================*/
 #include "resolution.hpp"
 #include "Point2D.hpp"
 #include <vector>
 
 class Polygon2D{
-    private:
+
+    //================
     // data
+    //================
+    private:
     std::vector<Point2D> vertices;
     // bounding box
     coordinate_t minX;
@@ -20,15 +22,23 @@ class Polygon2D{
     coordinate_t maxY;
     // convex or not
     bool is_convex; 
-    // add_Point2Dの途中で使用する。
-    int sign_of_outer_product;
+    int sign_of_outer_product;    // used to determine convex or not
 
+    //================
+    // constructor / コンストラクタ
+    //================
     public:
     Polygon2D();
 
+    //================
+    // constructor / コンストラクタ
+    //================
     // methods
     void clear(); // 初期化
 
+    //================
+    // Functions / 関数
+    //================
     private:
     // 凸形状かを判定する際に使用するサブ関数
     // 点の順序はindex0->index1->index2の順
@@ -40,13 +50,25 @@ class Polygon2D{
     // 計算量削減のため、p0.yやp1.yがyと一致した場合は、0.005程度p0やp1をシフトする。
     bool is_crossing( const coordinate_t x, const coordinate_t y, const Point2D &p0, const Point2D &p1, coordinate_t *x_cross_point ) const;
 
+    //================
+    // Public Functions / 関数
+    //================
     public:
+    // Functions to define the polygon
     // 点の追加。Polygonの定義は必ずこれで行う。追加時に凸判定も行う
     void add_Point2D( const Point2D p );
-    void add_Point2D( const float x, const float y ); // 中で10倍
+    void add_Point2D( const float x, const float y ); // 中で(Point2Dで)internal scale倍
 
+    // Basic Shapes
+    void rectangle( Point2D p0, Point2D p1 );  //
+    void line_segment( Point2D p0, Point2D p1, float weight );
     // ほぼ円(正24角形)
-    void circle24( Point2D center, float raduis ); // radiusは中で10倍
+    void circle24( Point2D center, float raduis ); // radiusは中でinternal scale倍
+    
+    // Derive a new shape based on this
+    //Polygon2D frame( float weight );
+    
+    
     // indexの点を返す。
     Point2D get_Point2D(const uint16_t index) const;
     inline uint16_t size(){return this->vertices.size();} 
@@ -64,7 +86,7 @@ class Polygon2D{
     void get_sx_mix_and_out( const pixel_index_t iy, pixel_index_t &sx_mix, pixel_index_t &sx_out ) const; // for fill_polygon
     void get_start_x_of_the_areas( const pixel_index_t iy, pixel_index_t &sx_mix_0, pixel_index_t &sx_inc, pixel_index_t &sx_mix_1, pixel_index_t &sx_out1 ) const; // for fill_convex_polygon
 
-    // methods
+    // operators
     public:
     Polygon2D & operator = (const Polygon2D p);
     Polygon2D & operator += (const Point2D p);
