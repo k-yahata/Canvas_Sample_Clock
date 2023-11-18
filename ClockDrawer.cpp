@@ -74,6 +74,8 @@ void Drawer::draw_clock( Canvas_SSD1331 &canvas, int hour, int min, float second
         canvas.fill_polygon( h, const_cast<ColorRGB&>(color_hour_hand), 0);
         canvas.fill_polygon( m, const_cast<ColorRGB&>(color_minute_hand), 0);
         canvas.fill_polygon( s, const_cast<ColorRGB&>(color_second_hand), 0);
+
+        canvas.set_readable();
     }
 
 }
